@@ -1,10 +1,15 @@
-use crate::api;
+use std::sync::Arc;
+
+use crate::{
+    api,
+    service::{dispatcher::Dispatcher, storage::store::InMemorySecretStore},
+};
 
 use axum::{Router, routing::post};
 use thiserror::Error;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-use tracing::info;
+use tracing::trace;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -23,7 +28,7 @@ pub fn init_tracing() {
     // This will route all `tracing` events through this subscriber.
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    info!("Tracing init successfully");
+    trace!("Tracing init successfully");
 }
 
 pub async fn run() -> Result<(), Error> {
@@ -40,5 +45,10 @@ pub async fn run() -> Result<(), Error> {
 fn register_routes() -> Router {
     let router = Router::new();
 
-    router.route("/secrets/new", post(api::new_secret::handle))
+    let storage = InMemorySecretStore::new();
+    let dispatcher = Dispatcher::new(Arc::new(storage));
+
+    router
+        .route("/secrets/new", post(api::new_secret::handle))
+        .with_state(dispatcher)
 }

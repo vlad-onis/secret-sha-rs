@@ -2,21 +2,29 @@ use crate::model::secret::Secret;
 use std::collections::HashMap;
 
 use thiserror::Error;
+use tokio::sync::Mutex;
+use tracing::info;
 
 #[derive(Debug, Error)]
 pub enum Error {}
 
-pub trait SecretStore {
-    fn save(&mut self, secret: Secret) -> Result<Secret, Error>;
-}
-
+#[derive(Default, Debug)]
 pub struct InMemorySecretStore {
-    pub storage: HashMap<uuid::Uuid, Vec<u8>>,
+    pub storage: Mutex<HashMap<uuid::Uuid, Vec<u8>>>,
 }
 
-impl SecretStore for InMemorySecretStore {
-    fn save(&mut self, secret: Secret) -> Result<Secret, Error> {
-        self.storage.insert(secret.id, secret.secret_data.clone());
+impl InMemorySecretStore {
+    pub fn new() -> Self {
+        InMemorySecretStore {
+            storage: Mutex::new(HashMap::new()),
+        }
+    }
+
+    pub async fn save(&self, secret: Secret) -> Result<Secret, Error> {
+        let mut guard = self.storage.lock().await;
+
+        guard.insert(secret.id, secret.secret_data.clone());
+
         Ok(secret)
     }
 }
