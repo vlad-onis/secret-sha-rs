@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::service::storage::store::InMemorySecretStore;
+use crate::service::storage::in_memory_store::InMemorySecretStore;
 
 #[derive(Clone, Debug)]
 pub struct Dispatcher {

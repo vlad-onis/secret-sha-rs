@@ -1,5 +1,5 @@
 use crate::model::secret::Secret;
-use crate::service::{dispatcher::Dispatcher, storage::store::Error as StorageError};
+use crate::service::{dispatcher::Dispatcher, storage::in_memory_store::Error as StorageError};
 
 use thiserror::Error;
 use tracing::info;

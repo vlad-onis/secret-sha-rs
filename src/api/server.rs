@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     api,
-    service::{dispatcher::Dispatcher, storage::store::InMemorySecretStore},
+    service::{dispatcher::Dispatcher, storage::in_memory_store::InMemorySecretStore},
 };
 
 use axum::{Router, routing::post};

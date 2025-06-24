@@ -9,7 +9,7 @@ use crate::{
     model,
     service::{
         self, dispatcher::Dispatcher, methods::create_secret::CreateSecret,
-        storage::store::InMemorySecretStore,
+        storage::in_memory_store::InMemorySecretStore,
     },
 };
 
