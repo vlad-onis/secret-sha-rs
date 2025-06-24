@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
@@ -7,10 +5,7 @@ use tracing::{error, info};
 
 use crate::{
     model,
-    service::{
-        self, dispatcher::Dispatcher, methods::create_secret::CreateSecret,
-        storage::in_memory_store::InMemorySecretStore,
-    },
+    service::{dispatcher::Dispatcher, methods::create_secret::CreateSecret, storage::SecretStore},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -25,10 +20,16 @@ pub struct NewSecretResponse {
     pub secret_id: [u8; 16],
 }
 
-pub async fn handle(
-    State(dispatcher): State<Dispatcher>,
+pub async fn handle<S>(
+    State(dispatcher): State<Dispatcher<S>>,
     Json(params): Json<NewSecretParams>,
-) -> impl IntoResponse {
+) -> impl IntoResponse
+where
+    S: SecretStore + Clone + Send + Sync + 'static, // S needs to be Clone+Send+Sync for Axum State
+    // Crucially, Dispatcher<S> needs to implement CreateSecret,
+    // and its Error type must match the specific S::Error
+    Dispatcher<S>: CreateSecret<<S as SecretStore>::Error>,
+{
     // todo: add logs here
     // todo: add metrics here
 
@@ -38,7 +39,10 @@ pub async fn handle(
 
     info!("Received a new secret: {}", params.base64_encrypted_secret);
 
-    dispatcher.create_secret(secret).await.unwrap();
+    let r = dispatcher.create_secret(secret).await;
+    if let Err(e) = r {
+        error!("Failed to create a secret because: {e}");
+    }
 
     // if let Err(e) = service::methods::create_secret::create_secret(&mut storage, secret) {
     //     error!("failed to create and store the new secret because: {e}");

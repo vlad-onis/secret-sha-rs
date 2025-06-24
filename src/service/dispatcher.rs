@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use crate::service::storage::in_memory_store::InMemorySecretStore;
+use crate::service::storage::SecretStore;
 
 #[derive(Clone, Debug)]
-pub struct Dispatcher {
-    pub storage: Arc<InMemorySecretStore>,
+pub struct Dispatcher<S> {
+    pub storage: Arc<S>,
 }
 
-impl Dispatcher {
-    pub fn new(storage: Arc<InMemorySecretStore>) -> Dispatcher {
+impl<S: SecretStore> Dispatcher<S> {
+    pub fn new(storage: Arc<S>) -> Self {
         Dispatcher { storage }
     }
 }

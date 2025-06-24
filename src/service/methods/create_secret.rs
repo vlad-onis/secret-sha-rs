@@ -1,22 +1,28 @@
 use crate::model::secret::Secret;
-use crate::service::{dispatcher::Dispatcher, storage::in_memory_store::Error as StorageError};
+use crate::service::{dispatcher::Dispatcher, storage::SecretStore};
 
 use thiserror::Error;
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Error, Debug)]
-pub enum Error {
-    #[error("Failed to store secret: {0}")]
-    Storage(#[from] StorageError),
+pub enum Error<StoreError: std::error::Error + Send + Sync + 'static> {
+    #[error("Failed to store secret because: {0}")]
+    Storage(#[from] StoreError),
 }
 
-pub trait CreateSecret {
-    async fn create_secret(&self, secret: Secret) -> Result<(), Error>;
+pub trait CreateSecret<StoreError: std::error::Error + Send + Sync + 'static> {
+    fn create_secret(&self, secret: Secret) -> impl Future<Output = Result<(), Error<StoreError>>>;
 }
 
-impl CreateSecret for Dispatcher {
-    async fn create_secret(&self, secret: Secret) -> Result<(), Error> {
+impl<S> CreateSecret<<S as SecretStore>::Error> for Dispatcher<S>
+where
+    S: SecretStore,
+{
+    async fn create_secret(&self, secret: Secret) -> Result<(), Error<<S as SecretStore>::Error>> {
         let secret = self.storage.save(secret).await?;
+        // .map_err(|e| {
+        // error!("Failed to store secret because: {}", e);
+        // Error::Storage})?;
         let secret_message = secret
             .secret_data
             .iter()
@@ -25,6 +31,6 @@ impl CreateSecret for Dispatcher {
 
         info!("Sucssfully stored the secret: {}", secret_message);
 
-        return Ok(());
+        Ok(())
     }
 }
